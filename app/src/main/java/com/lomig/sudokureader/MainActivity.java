@@ -1,28 +1,17 @@
 package com.lomig.sudokureader;
 
 import android.Manifest;
-import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.graphics.ImageFormat;
-import android.graphics.Rect;
-import android.graphics.YuvImage;
-import android.media.Image;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.util.Log;
-import android.view.View;
 import android.widget.ImageButton;
-import android.widget.ImageView;
-import android.widget.SimpleAdapter;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -32,10 +21,8 @@ import androidx.camera.camera2.Camera2Config;
 import androidx.camera.core.Camera;
 import androidx.camera.core.CameraSelector;
 import androidx.camera.core.CameraXConfig;
-import androidx.camera.core.ImageAnalysis;
 import androidx.camera.core.ImageCapture;
 import androidx.camera.core.ImageCaptureException;
-import androidx.camera.core.ImageProxy;
 import androidx.camera.core.Preview;
 import androidx.camera.lifecycle.ProcessCameraProvider;
 import androidx.camera.view.PreviewView;
@@ -44,18 +31,9 @@ import androidx.core.content.ContextCompat;
 
 import com.google.common.util.concurrent.ListenableFuture;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.text.SimpleDateFormat;
-import java.util.Arrays;
-import java.util.Locale;
-import java.util.Objects;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executor;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
@@ -74,7 +52,6 @@ public class MainActivity extends AppCompatActivity implements CameraXConfig.Pro
     private PreviewView previewView;
     private ImageButton buttonPicture;
 
-
     private ImageCapture imageCapture = null;
 
     private static final String TAG = "MainActivity";
@@ -90,7 +67,6 @@ public class MainActivity extends AppCompatActivity implements CameraXConfig.Pro
 
         buttonPicture = findViewById(R.id.buttonPicture);
         buttonPicture.setOnClickListener(view -> takePhoto());
-
 
         if (ContextCompat.checkSelfPermission(this,
                 Manifest.permission.CAMERA)
@@ -120,13 +96,14 @@ public class MainActivity extends AppCompatActivity implements CameraXConfig.Pro
     }
 
     private void takePhoto() {
-        if(imageCapture==null){
+        if (imageCapture == null) {
             return;
         }
         try {
-            File photoFile = File.createTempFile("sudokuGrid",".png");
+            File photoFile = File.createTempFile("sudokuGrid", ".png");
             ImageCapture.OutputFileOptions outputFileOptions =
                     new ImageCapture.OutputFileOptions.Builder(photoFile).build();
+
             imageCapture.takePicture(outputFileOptions, ContextCompat.getMainExecutor(this), new ImageCapture.OnImageSavedCallback() {
                 @Override
                 public void onImageSaved(@NonNull ImageCapture.OutputFileResults outputFileResults) {
@@ -138,16 +115,15 @@ public class MainActivity extends AppCompatActivity implements CameraXConfig.Pro
                     Log.e(TAG, String.valueOf(exception));
                 }
             });
-
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
     private void uploadFile(File photoFile) {
+
         RequestBody filePart = RequestBody.create(
-                MediaType.parse(getContentResolver().getType(Uri.fromFile(photoFile))),
-                photoFile);
+                MediaType.parse("image/png"), photoFile);
 
         MultipartBody.Part file = MultipartBody.Part
                 .createFormData("picture", photoFile.getName(), filePart);
