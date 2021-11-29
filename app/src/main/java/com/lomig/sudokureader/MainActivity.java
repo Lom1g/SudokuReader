@@ -7,6 +7,8 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.Settings;
@@ -32,11 +34,16 @@ import androidx.core.content.ContextCompat;
 import com.google.common.util.concurrent.ListenableFuture;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.util.Objects;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
+import okhttp3.OkHttpClient;
 import okhttp3.RequestBody;
 import okhttp3.ResponseBody;
 import retrofit2.Call;
@@ -47,7 +54,7 @@ import retrofit2.converter.gson.GsonConverterFactory;
 
 public class MainActivity extends AppCompatActivity implements CameraXConfig.Provider {
 
-    private static final String BASE_URL = "";
+    private static final String BASE_URL = "http://192.168.0.173:5000/";
     private ListenableFuture<ProcessCameraProvider> cameraProviderFuture;
     private PreviewView previewView;
     private ImageButton buttonPicture;
@@ -66,7 +73,10 @@ public class MainActivity extends AppCompatActivity implements CameraXConfig.Pro
         previewView = findViewById(R.id.previewView);
 
         buttonPicture = findViewById(R.id.buttonPicture);
-        buttonPicture.setOnClickListener(view -> takePhoto());
+        buttonPicture.setOnClickListener(view -> {
+            Toast.makeText(this, "Photo captured", Toast.LENGTH_LONG).show();
+            takePhoto();
+        });
 
         if (ContextCompat.checkSelfPermission(this,
                 Manifest.permission.CAMERA)
@@ -100,7 +110,7 @@ public class MainActivity extends AppCompatActivity implements CameraXConfig.Pro
             return;
         }
         try {
-            File photoFile = File.createTempFile("sudokuGrid", ".png");
+            File photoFile = File.createTempFile("sudokuGrid", ".jpeg");
             ImageCapture.OutputFileOptions outputFileOptions =
                     new ImageCapture.OutputFileOptions.Builder(photoFile).build();
 
@@ -123,25 +133,73 @@ public class MainActivity extends AppCompatActivity implements CameraXConfig.Pro
     private void uploadFile(File photoFile) {
 
         RequestBody filePart = RequestBody.create(
-                MediaType.parse("image/png"), photoFile);
+                MediaType.parse("image/jpeg"), photoFile);
 
         MultipartBody.Part file = MultipartBody.Part
-                .createFormData("picture", photoFile.getName(), filePart);
+                .createFormData("image", photoFile.getName(), filePart);
+
+        OkHttpClient client = new OkHttpClient.Builder()
+                .readTimeout(2, TimeUnit.MINUTES)
+                .connectTimeout(60, TimeUnit.SECONDS)
+                .build();
 
         Retrofit.Builder builder = new Retrofit.Builder()
                 .baseUrl(BASE_URL)
                 .addConverterFactory(GsonConverterFactory.create());
 
-        Retrofit retrofit = builder.build();
+        Retrofit retrofit = builder
+                .client(client)
+                .build();
         SudokuGridAPI sudokuGridAPI = retrofit.create(SudokuGridAPI.class);
 
         Call<ResponseBody> call = sudokuGridAPI.uploadPicture(file);
         call.enqueue(new Callback<ResponseBody>() {
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
-                Toast.makeText(getBaseContext(), response.message(), Toast.LENGTH_LONG).show();
+                if(response.isSuccessful()){
+                    try {
+                        String urlFile = Objects.requireNonNull(response.body()).string();
+                        response.body().close();
+                        downloadFile(urlFile , sudokuGridAPI);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
             }
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                Log.e(TAG, t.getMessage());
+            }
+        });
+    }
 
+    private void downloadFile(String urlFile, SudokuGridAPI sudokuGridAPI) {
+        Call<ResponseBody> call = sudokuGridAPI.getPicture(urlFile);
+        call.enqueue(new Callback<ResponseBody>() {
+            @Override
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+                if(response.isSuccessful()){
+                    try {
+                        InputStream inputStream = Objects.requireNonNull(response.body()).byteStream();
+                        response.body().close();
+                        Bitmap bitmap = BitmapFactory.decodeStream(inputStream);
+                        String filename = "bitmap.png";
+                        FileOutputStream fileOutputStream = MainActivity.this.openFileOutput(filename, Context.MODE_PRIVATE);
+                        bitmap.compress(Bitmap.CompressFormat.PNG, 100, fileOutputStream);
+
+                        //Cleanup
+                        fileOutputStream.close();
+                        bitmap.recycle();
+
+                        Intent intent = new Intent(MainActivity.this, ResultActivity.class);
+                        intent.putExtra("picture", filename);
+                        startActivity(intent);
+                        finish();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
             @Override
             public void onFailure(Call<ResponseBody> call, Throwable t) {
                 Log.e(TAG, t.getMessage());
