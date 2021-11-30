@@ -31,9 +31,6 @@ Il faut lancer le serveur de résolution sur le même réseau que votre applicat
    ```
 - Executer le projet dans un émulateur ou bien votre périphérique
 
-
-Ensuite vous pouvez montrer ce que vous obtenez au final...
-
 ## Démarrage
 
 - Lancer l'application qui vient d'être installée
