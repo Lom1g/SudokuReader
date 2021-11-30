@@ -44,7 +44,7 @@ Ensuite vous pouvez montrer ce que vous obtenez au final...
 **Dernière version :** 1.0
 
 ## Auteurs
-Listez le(s) auteur(s) du projet ici !
+
 * **Nathan Cuvier-Péres** _alias_ [@Lom1g](https://github.com/Lom1g)
 
 Les [contributeurs](https://github.com/Lom1g/SudokuReader/contributors).
