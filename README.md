@@ -25,6 +25,10 @@ Il faut lancer le serveur de résolution sur le même réseau que votre applicat
 ### Installation
 
 - Cloner le projet sous Android Studio.
+- Modifier la varaiable BASE_URL avec l'adresse ip du serveur et le port 5000
+  ```sh
+   private final static String BASE_URL = "yourIpServer:5000"
+   ```
 - Executer le projet dans un émulateur ou bien votre périphérique
 
 
